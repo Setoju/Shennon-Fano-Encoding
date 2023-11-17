@@ -1,79 +1,101 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 public class ShannonFano
 {
-    public static List<Tuple<char, string, double>> Encode(string input, List<double> probabilities)
+    private string Name { get; set; }
+    private double Probability { get; set; }
+    private string Code { get; set; }
+
+    public void TaskOfSecond(List<double> list)
     {
-        if (input.Length != probabilities.Count)
+        // Створюємо список
+        var probabilities = new List<ShannonFano>();
+        int index = 1;
+
+        // Створюємо об'єкти ShannonFano з ймовірностями зі вхідного списку
+        foreach (double prob in list)
         {
-            throw new ArgumentException("Input length and probabilities count must match.");
+            probabilities.Add(new ShannonFano { Name = "x" + index++, Probability = prob });
         }
 
-        List<Tuple<char, string, double>> symbols = new List<Tuple<char, string, double>>();
+        // Відсортовуємо ймовірності в порядку незростання
+        probabilities.Sort((x, y) => x.Probability.CompareTo(y.Probability));
 
-        for (int i = 0; i < input.Length; i++)
+        // Розділюємо ймовірності за методикою Шеннона-Фано
+        Divide(probabilities, 0, probabilities.Count - 1);
+
+        Console.WriteLine("\nКодування методикою Шеннона-Фано:");
+
+        Console.WriteLine("Символ\tЙмовірність\tКод");
+
+        // Виводимо символи, ймовірності та коди Шеннона-Фано
+        foreach (var symbol in probabilities.OrderBy(e => e.Name))
         {
-            symbols.Add(new Tuple<char, string, double>(input[i], "", probabilities[i]));
+            Console.WriteLine($"{symbol.Name}\t{symbol.Probability}\t\t{symbol.Code}");
         }
-
-        symbols = symbols.OrderByDescending(x => x.Item3).ToList();
-        EncodeRecursive(symbols, 0, symbols.Count - 1);
-
-        return symbols;
     }
 
-    private static void EncodeRecursive(List<Tuple<char, string, double>> symbols, int start, int end)
+    // Рекурсивна функція для розділення ймовірностей Шеннона-Фано
+    static void Divide(List<ShannonFano> probabilities, int start, int end)
     {
-        if (start == end)
-        {
-            return;
-        }
-        //Сума всіх ймовірностей символів у поточному діапазоні
-        double sumProbabilities = symbols.GetRange(start, end - start + 1).Sum(x => x.Item3);
-        //Середнє значення суми ймовірностей
-        double halfSum = sumProbabilities / 2.0;
-        double currentSum = 0.0;
-        int splitIndex = -1;
-        //Починаючи з початковго символу, ми шукаємо символ, для якого сума ймовірностей до нього перевищує це середнє значення. На цьому символі і буде точка розділення
+        if (start >= end) return;
+
+        double totalProbability = 0;
+
+        // Знайдемо загальну ймовірність для вказаного діапазону
         for (int i = start; i <= end; i++)
         {
-            currentSum += symbols[i].Item3;
-            if (currentSum >= halfSum)
-            {
-                splitIndex = i;
-                break;
-            }
+            totalProbability += probabilities[i].Probability;
         }
-        //Присвоюємо коди символам: символам до точки розділення додаємо "0", а символам після точки розділення додаємо "1"
+
+        int index = -1;
+
+        double probability = 0;
+        double minDifference = double.MaxValue;
+
+        // Знайдемо індекс, який розділить ймовірності до половини загальної ймовірності
         for (int i = start; i <= end; i++)
         {
-            if (i <= splitIndex)
+            probability += probabilities[i].Probability;
+
+            double difference = Math.Abs(probability - totalProbability / 2);
+
+            if (difference < minDifference)
             {
-                symbols[i] = new Tuple<char, string, double>(symbols[i].Item1, symbols[i].Item2 + "0", symbols[i].Item3);
-            }
-            else
-            {
-                symbols[i] = new Tuple<char, string, double>(symbols[i].Item1, symbols[i].Item2 + "1", symbols[i].Item3);
+                index = i;
+                minDifference = difference;
             }
         }
-        //Рекурсивно викликаємо нашу функцію для лівої і правої частини
-        EncodeRecursive(symbols, start, splitIndex);
-        EncodeRecursive(symbols, splitIndex + 1, end);
+
+        // Додаємо '0' до коду Шеннона-Фано для першої частини ймовірностей та '1' для другої частини
+        for (int i = start; i <= index; i++)
+        {
+            probabilities[i].Code += "1";
+        }
+
+        for (int i = index + 1; i <= end; i++)
+        {
+            probabilities[i].Code += "0";
+        }
+
+        // Рекурсивно розділюємо обидві частини
+        Divide(probabilities, start, index);
+        Divide(probabilities, index + 1, end);
     }
-
-    public static void Main(string[] args)
+}
+public class Program
+{
+    public static void Main()
     {
-        string input = "ABCDEFGHI";
-        List<double> probabilities = new List<double> { 0.26, 0.14, 0.05, 0.10, 0.07, 0.11, 0.02, 0.20, 0.05 };
+        Console.WriteLine("Введiть через пробiл ймовiрностi виникнення символiв:");
 
-        List<Tuple<char, string, double>> codes = Encode(input, probabilities);
+        List<double> listOfSecond = Console.ReadLine()!.Trim().Split().Select(s => double.Parse(s, CultureInfo.InvariantCulture)).ToList();
 
-        Console.WriteLine("Character Codes:");
-        foreach (var tuple in codes)
-        {
-            Console.WriteLine($"{tuple.Item1}: {tuple.Item2} (Probability: {tuple.Item3})");
-        }
+        ShannonFano taskOfSecond = new ShannonFano();
+
+        taskOfSecond.TaskOfSecond(listOfSecond);
     }
 }
